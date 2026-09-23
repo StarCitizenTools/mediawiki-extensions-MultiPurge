@@ -107,7 +107,7 @@ class PurgeHooks implements LocalFilePurgeThumbnailsHook, ArticlePurgeHook, Edit
 			}
 		}
 
-		$urls = [ ...$urls,...$transformerUrls ];
+		$urls = [ ...$urls, ...$transformerUrls ];
 
 		$this->runPurge( $urls );
 	}

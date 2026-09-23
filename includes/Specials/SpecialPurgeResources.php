@@ -16,9 +16,6 @@ use OOUIHTMLForm;
 use PermissionsError;
 
 class SpecialPurgeResources extends SpecialPage {
-	/**
-	 *
-	 */
 	public function __construct() {
 		parent::__construct( 'PurgeResources', 'editinterface' );
 	}
