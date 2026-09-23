@@ -182,7 +182,6 @@ class PurgeHooks implements LocalFilePurgeThumbnailsHook, ArticlePurgeHook, Edit
 		}
 
 		try {
-			$refMethod->setAccessible( true );
 			$thumbnails = $refMethod->invoke( $file );
 		} catch ( ReflectionException $e ) {
 			$thumbnails = [];
