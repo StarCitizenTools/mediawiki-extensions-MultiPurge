@@ -62,7 +62,7 @@ class SpecialPurgeResources extends SpecialPage {
 				$formDescriptor = array_merge( $formDescriptor, $this->makeSelects( $this->parseLoads( $content ) ) );
 				$showPurge = true;
 			} else {
-				$out->prependHTML( $this->msg( 'multipurge-special-invalid-title' )->plain() );
+				$out->prependHTML( $this->msg( 'multipurge-special-invalid-title' )->escaped() );
 			}
 		}
 
