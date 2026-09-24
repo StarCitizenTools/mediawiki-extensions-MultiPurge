@@ -27,6 +27,10 @@
 			"description": "Whether or not CloudFlare's cache by device type is enabled.",
 			"value": false
 		},
+		"MultiPurgeCloudFlareUrlsPerRequest": {
+			"description": "Maximum number of URLs in one Cloudflare purge request. Cloudflare allows 100 on the Free, Pro and Business plans and 500 on Enterprise.",
+			"value": 100
+		},
 		"MultiPurgeVarnishServers": {
 			"description": "",
 			"value": null
