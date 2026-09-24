@@ -163,4 +163,21 @@ class PurgeHooksTest extends MediaWikiIntegrationTestCase {
 		$hooks->onEditPage__attemptSave_after( $editPage, Status::newGood(), [] );
 	}
 
+	/**
+	 * @covers \MediaWiki\Extension\MultiPurge\Hooks\PurgeHooks::factory
+	 * @return void
+	 */
+	public function testFactory() {
+		$services = $this->getServiceContainer();
+
+		$hooks = PurgeHooks::factory(
+			$services->getMainConfig(),
+			$services->getJobQueueGroup(),
+			$services->getResourceLoader(),
+			$services->getUrlUtils()
+		);
+
+		$this->assertInstanceOf( PurgeHooks::class, $hooks );
+	}
+
 }

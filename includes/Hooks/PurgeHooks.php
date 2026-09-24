@@ -62,6 +62,29 @@ class PurgeHooks implements LocalFilePurgeThumbnailsHook, ArticlePurgeHook, Edit
 	}
 
 	/**
+	 * MW 1.46 renamed the HtmlCacheUpdater service to HTMLCacheUpdater and deprecated the old name,
+	 * which MW 1.43 still requires, so the service cannot be listed in extension.json
+	 *
+	 * @param Config $config
+	 * @param JobQueueGroup $group
+	 * @param ResourceLoader $rl
+	 * @param UrlUtils $utils
+	 * @return self
+	 */
+	public static function factory(
+		Config $config,
+		JobQueueGroup $group,
+		ResourceLoader $rl,
+		UrlUtils $utils
+	): self {
+		$cacheUpdater = MediaWikiServices::getInstance()->getService(
+			version_compare( MW_VERSION, '1.46', '<' ) ? 'HtmlCacheUpdater' : 'HTMLCacheUpdater'
+		);
+
+		return new self( $config, $cacheUpdater, $group, $rl, $utils );
+	}
+
+	/**
 	 * Retrieve a list of thumbnail URLs that needs to be purged
 	 *
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/LocalFilePurgeThumbnails
