@@ -47,14 +47,14 @@ class PurgeEventRelayer extends EventRelayer {
 			} else {
 				try {
 					$status = $job->run();
-				} catch ( Exception $e ) {
+				} catch ( Exception ) {
 					$status = false;
 				}
 				wfDebugLog(
 					'MultiPurge',
 					sprintf(
 						'Job Status: %s',
-						( $status === true ? 'success' : 'error' )
+						( $status ? 'success' : 'error' )
 					)
 				);
 			}
