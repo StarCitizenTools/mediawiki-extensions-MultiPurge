@@ -29,6 +29,8 @@ When a template or module is edited, MediaWiki re-renders every page that uses i
 
 With `$wgMultiPurgeWarmParserCacheOnRefreshLinks = true`, MultiPurge keeps that render and purges the page from your CDN, so the page doesn't have to be parsed a second time. It only does this for pages that are still in the parser cache, so warming doesn't push out pages that are read more often. Each page is purged separately, so editing a widely used template sends more purge requests to your CDN. Wikis using Parsoid read views are not covered.
 
+The background render has to come from the same parser as page views. MediaWiki 1.47 renders it with Parsoid by default, so on a wiki whose readers still get the legacy parser, set `$wgUseParsoidLinksUpdate = null` for the warm-up to take effect.
+
 
 ## Special Page
 MultiPurge adds a special page for sysops which allows purging of `load.php` urls.  
