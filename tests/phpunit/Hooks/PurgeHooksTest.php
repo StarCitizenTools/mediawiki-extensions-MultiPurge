@@ -7,7 +7,7 @@ namespace MediaWiki\Extension\MultiPurge\Tests\Hooks;
 use Exception;
 use JobQueueGroup;
 use LocalFile;
-use MediaWiki\Cache\HtmlCacheUpdater;
+use MediaWiki\Cache\HTMLCacheUpdater;
 use MediaWiki\EditPage\EditPage;
 use MediaWiki\Extension\MultiPurge\Hooks\PurgeHooks;
 use MediaWiki\Extension\MultiPurge\Services\Cloudflare;
@@ -74,7 +74,7 @@ class PurgeHooksTest extends MediaWikiIntegrationTestCase {
 		$title = Title::newFromText( 'Foo' );
 		$page = $this->getServiceContainer()->getWikiPageFactory()->newFromTitle( $title );
 
-		$cacheMock = $this->getMockBuilder( HtmlCacheUpdater::class )->disableOriginalConstructor()->getMock();
+		$cacheMock = $this->getMockBuilder( HTMLCacheUpdater::class )->disableOriginalConstructor()->getMock();
 		$cacheMock->expects( $this->once() )->method( 'getUrls' )->willReturn( [ 'http://localhost/foo' ] );
 
 		$hooks = new PurgeHooks(
