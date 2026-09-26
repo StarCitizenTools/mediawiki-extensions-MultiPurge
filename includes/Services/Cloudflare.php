@@ -26,7 +26,7 @@ class Cloudflare implements PurgeServiceInterface {
 
 	/**
 	 * Returns as array of purge requests
-	 * Chunks the request of count($urls) > 30
+	 * Chunks the request by $wgMultiPurgeCloudFlareUrlsPerRequest
 	 *
 	 * @param string|array $urls
 	 * @return array
@@ -51,7 +51,11 @@ class Cloudflare implements PurgeServiceInterface {
 
 		$requests = [];
 
-		$chunkSize = $this->extensionConfig->get( 'MultiPurgeCloudFlareCacheByDeviceType' ) ? 15 : 30;
+		$chunkSize = max( 1, (int)$this->extensionConfig->get( 'MultiPurgeCloudFlareUrlsPerRequest' ) );
+		// Cache by device type sends every URL twice, once per device type
+		if ( $this->extensionConfig->get( 'MultiPurgeCloudFlareCacheByDeviceType' ) ) {
+			$chunkSize = max( 1, intdiv( $chunkSize, 2 ) );
+		}
 
 		foreach ( array_chunk( $urls, $chunkSize ) as $chunk ) {
 			try {

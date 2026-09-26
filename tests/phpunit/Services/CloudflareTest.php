@@ -49,6 +49,7 @@ class CloudflareTest extends \MediaWikiIntegrationTestCase {
 	 * @throws Exception
 	 */
 	public function testMakeUrlChunked() {
+		$this->overrideConfigValues( [ 'MultiPurgeCloudFlareUrlsPerRequest' => 30 ] );
 		$cf = new Cloudflare( $this->getServiceContainer()->getMainConfig() );
 
 		$requests = $cf->getPurgeRequest( [
@@ -89,5 +90,35 @@ class CloudflareTest extends \MediaWikiIntegrationTestCase {
 		] );
 
 		$this->assertCount( 2, $requests );
+	}
+
+	/**
+	 * @covers \MediaWiki\Extension\MultiPurge\Services\Cloudflare::getPurgeRequest
+	 * @return void
+	 * @throws Exception
+	 */
+	public function testDefaultUrlsPerRequest() {
+		$cf = new Cloudflare( $this->getServiceContainer()->getMainConfig() );
+
+		$requests = $cf->getPurgeRequest( array_map( static fn ( $i ) => "https://foo$i", range( 1, 150 ) ) );
+
+		$this->assertCount( 2, $requests );
+		$this->assertCount( 100, json_decode( $requests[0]['postData'], true )['files'] );
+	}
+
+	/**
+	 * @covers \MediaWiki\Extension\MultiPurge\Services\Cloudflare::getPurgeRequest
+	 * @return void
+	 * @throws Exception
+	 */
+	public function testUrlsPerRequestWithCacheByDeviceType() {
+		$this->overrideConfigValues( [ 'MultiPurgeCloudFlareCacheByDeviceType' => true ] );
+		$cf = new Cloudflare( $this->getServiceContainer()->getMainConfig() );
+
+		$requests = $cf->getPurgeRequest( array_map( static fn ( $i ) => "https://foo$i", range( 1, 150 ) ) );
+
+		// Every URL is sent twice, once per device type
+		$this->assertCount( 3, $requests );
+		$this->assertCount( 100, json_decode( $requests[0]['postData'], true )['files'] );
 	}
 }
