@@ -20,7 +20,19 @@ class SpecialPurgeResources extends SpecialPage {
 	 *
 	 */
 	public function __construct() {
-		parent::__construct( 'PurgeResources', 'editinterface' );
+		// MW < 1.46 reads the restriction from the constructor instead of getRestriction()
+		if ( version_compare( MW_VERSION, '1.46', '<' ) ) {
+			parent::__construct( 'PurgeResources', $this->getRestriction() );
+		} else {
+			parent::__construct( 'PurgeResources' );
+		}
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getRestriction(): string {
+		return 'editinterface';
 	}
 
 	/**
@@ -33,7 +45,7 @@ class SpecialPurgeResources extends SpecialPage {
 		$this->checkPermissions();
 		$out = $this->getOutput();
 
-		$out->setPageTitle( $this->msg( 'multipurge-form-title' ) );
+		$out->setPageTitleMsg( $this->msg( 'multipurge-form-title' ) );
 
 		$formDescriptor = [
 			'target' => [
