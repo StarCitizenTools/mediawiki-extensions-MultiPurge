@@ -12,11 +12,15 @@ use MediaWiki\Config\Config;
 use MediaWiki\Extension\MultiPurge\Services\Cloudflare;
 use MediaWiki\Extension\MultiPurge\Services\PurgeServiceInterface;
 use MediaWiki\Extension\MultiPurge\Services\Varnish;
+use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 use ReflectionClass;
 use ReflectionException;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 class MultiPurgeJob extends Job implements GenericParameterJob {
+	private const MAX_RATE_LIMIT_RETRIES = 5;
+
 	/**
 	 * @var Config Extension config passed to each service
 	 */
@@ -119,9 +123,12 @@ class MultiPurgeJob extends Job implements GenericParameterJob {
 			}
 
 			try {
-				$urls = $this->getPurgeService( $service )->getPurgeRequest( $urls );
-
-				$requests = [ ...$requests, ...$urls ];
+				foreach ( $this->getPurgeService( $service )->getPurgeRequest( $urls ) as $request ) {
+					// Remembered so a rate-limited request can be retried on its own
+					$request['purgeService'] = $service;
+					$request['purgeUrls'] ??= $urls;
+					$requests[] = $request;
+				}
 			} catch ( ReflectionException $e ) {
 				wfDebugLog( 'MultiPurge', $e->getMessage() );
 				wfLogWarning( sprintf( '[MultiPurge] Could not instantiate service "%s"', $service ) );
@@ -137,21 +144,71 @@ class MultiPurgeJob extends Job implements GenericParameterJob {
 			return false;
 		}
 
-		return array_reduce( $statuses, static function ( bool $carry, array $data ) {
-			[ $code, $reason, $headers, $body, $error ] = $data['response'];
-			$good = false;
+		$good = true;
+		$rateLimited = [];
+		foreach ( $statuses as $data ) {
+			[ $code, , $headers, $body, $error ] = $data['response'];
 			if ( $code >= 200 && $code <= 299 ) {
-				$good = true;
-			} else {
-				$status = $body ?? $error;
-				wfDebugLog(
-					'MultiPurge',
-					sprintf( 'Result for request %s is: %s', $data['url'] ?? '<invalid>', $status )
-				);
+				continue;
 			}
 
-			return $carry && $good;
-		}, true );
+			if ( $code === 429 && isset( $data['purgeService'] ) ) {
+				$service = $data['purgeService'];
+				$rateLimited[$service]['urls'] = [ ...( $rateLimited[$service]['urls'] ?? [] ), ...$data['purgeUrls'] ];
+				$rateLimited[$service]['retryAfter'] = max(
+					$rateLimited[$service]['retryAfter'] ?? 0,
+					(int)( $headers['retry-after'] ?? 0 )
+				);
+				continue;
+			}
+
+			$status = $body ?? $error;
+			wfDebugLog(
+				'MultiPurge',
+				sprintf( 'Result for request %s is: %s', $data['url'] ?? '<invalid>', $status )
+			);
+			$good = false;
+		}
+
+		foreach ( $rateLimited as $service => $retry ) {
+			$this->retryRateLimited( $service, $retry['urls'], $retry['retryAfter'] );
+		}
+
+		return $good;
+	}
+
+	/**
+	 * Queue the URLs of rate-limited requests for another attempt, waiting as long as the
+	 * service asked or backing off exponentially
+	 *
+	 * @param string $service
+	 * @param string[] $urls
+	 * @param int $retryAfter Seconds the service asked to wait, 0 if it did not say
+	 */
+	private function retryRateLimited( string $service, array $urls, int $retryAfter ): void {
+		$retries = $this->params['rateLimitRetries'] ?? 0;
+		if ( $retries >= self::MAX_RATE_LIMIT_RETRIES ) {
+			LoggerFactory::getInstance( 'MultiPurge' )->error(
+				'Dropping {count} URLs still rate-limited by {service} after {retries} retries',
+				[ 'count' => count( $urls ), 'service' => $service, 'retries' => $retries ]
+			);
+			return;
+		}
+
+		// Cloudflare blocks an account for five minutes once its API rate limit is exceeded
+		$delay = $retryAfter > 0 ? $retryAfter : min( 60 * 2 ** $retries, 300 );
+
+		MediaWikiServices::getInstance()->getJobQueueGroupFactory()->makeJobQueueGroup()->lazyPush( new self( [
+			'urls' => array_values( array_unique( $urls ) ),
+			'service' => $service,
+			'rateLimitRetries' => $retries + 1,
+			'jobReleaseTimestamp' => (int)ConvertibleTimestamp::time() + $delay,
+		] ) );
+
+		wfDebugLog(
+			'MultiPurge',
+			sprintf( 'Rate-limited by %s, retrying %d URLs in %d seconds', $service, count( $urls ), $delay )
+		);
 	}
 
 	/**
