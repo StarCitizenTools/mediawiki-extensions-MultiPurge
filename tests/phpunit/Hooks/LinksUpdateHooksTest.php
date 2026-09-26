@@ -55,7 +55,7 @@ class LinksUpdateHooksTest extends MediaWikiIntegrationTestCase {
 
 	private function cachedText(): ?string {
 		$output = $this->cachedOutput();
-		return $output ? $output->getRawText() : null;
+		return $output ? $output->getContentHolderText() : null;
 	}
 
 	private function touched(): string {
