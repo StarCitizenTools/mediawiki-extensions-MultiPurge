@@ -69,10 +69,9 @@
 	},
 	"HookHandlers": {
 		"purge": {
-			"class": "MediaWiki\\Extension\\MultiPurge\\Hooks\\PurgeHooks",
+			"factory": "MediaWiki\\Extension\\MultiPurge\\Hooks\\PurgeHooks::factory",
 			"services": [
 				"MainConfig",
-				"HtmlCacheUpdater",
 				"JobQueueGroup",
 				"ResourceLoader",
 				"UrlUtils"
