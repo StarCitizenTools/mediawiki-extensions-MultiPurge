@@ -79,8 +79,11 @@ class LinksUpdateHooksTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * Creates a page that uses a template, then edits the template, leaving the cascade's jobs queued.
 	 * Core's jobs read the real clock, so the edits are made in the past.
+	 *
+	 * @param bool $enabled
+	 * @param array $config Extra config overrides
 	 */
-	private function setUpCascade( bool $enabled ): void {
+	private function setUpCascade( bool $enabled, array $config = [] ): void {
 		$this->overrideConfigValues( [
 			MainConfigNames::UseCdn => true,
 			MainConfigNames::UseInstantCommons => false,
@@ -93,8 +96,12 @@ class LinksUpdateHooksTest extends MediaWikiIntegrationTestCase {
 			// written just before the edit's purge would still count as fresh; CACHE_NONE avoids
 			// that test-only artefact.
 			MainConfigNames::MainCacheType => CACHE_NONE,
+			// MW 1.47 renders links updates with Parsoid by default; follow the parser page views use,
+			// as earlier versions always do
+			'UseParsoidLinksUpdate' => null,
 			'MultiPurgeEnabledServices' => [],
 			'MultiPurgeWarmParserCacheOnRefreshLinks' => $enabled,
+			...$config,
 		] );
 		// Record purges with a stand-in: MW 1.46's test framework replaces the real service with a no-op
 		$cacheUpdater = $this->createMock( HTMLCacheUpdater::class );
@@ -229,6 +236,21 @@ class LinksUpdateHooksTest extends MediaWikiIntegrationTestCase {
 		$this->runJobs( [], [ 'type' => 'refreshLinks' ] );
 
 		$this->assertNull( $this->cachedText() );
+	}
+
+	public function testLeavesRenderFromAnotherParserToCore(): void {
+		if ( version_compare( MW_VERSION, '1.47', '<' ) ) {
+			$this->markTestSkipped( 'Before MW 1.47, RefreshLinksJob always uses the parser page views use' );
+		}
+		// Page views use the legacy parser, links updates Parsoid
+		$this->setUpCascade( true, [ 'UseParsoidLinksUpdate' => true ] );
+		$touched = $this->touched();
+
+		$this->runJobs( [], [ 'type' => 'refreshLinks' ] );
+
+		$this->assertStringContainsString( 'old template text', $this->cachedText() ?? '' );
+		$this->assertNotContains( self::PAGE, $this->purged );
+		$this->assertSame( $touched, $this->touched() );
 	}
 
 	public function testCoreDiscardsRenderWhenDisabled(): void {

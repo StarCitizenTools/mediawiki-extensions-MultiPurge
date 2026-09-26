@@ -108,6 +108,14 @@ class LinksUpdateHooks implements LinksUpdateCompleteHook {
 
 		try {
 			$parserOptions = $page->makeParserOptions( 'canonical' );
+			// MW 1.47 can render links updates with another parser than page views, and a render only
+			// belongs in the cache of the parser that made it. RefreshLinksJob picks it the same way.
+			$linksUpdateUsesParsoid = $this->config->has( 'UseParsoidLinksUpdate' ) ?
+				$this->config->get( 'UseParsoidLinksUpdate' ) : null;
+			if ( $linksUpdateUsesParsoid !== null && $linksUpdateUsesParsoid !== $parserOptions->getUseParsoid() ) {
+				return;
+			}
+
 			$cachedOutput = $this->parserCache->getDirty( $page, $parserOptions );
 			// Only replace an entry the parser cache still holds, so warming doesn't push out pages
 			// that are read more often than this one (T327162). RefreshLinksJob reuses the cached
