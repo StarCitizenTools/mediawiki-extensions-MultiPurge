@@ -103,7 +103,7 @@ class MultiPurgeJobTest extends MediaWikiIntegrationTestCase {
 		$httpMock = $this->getMockBuilder( HttpRequestFactory::class )->disableOriginalConstructor()->getMock();
 		$httpMock->expects( $this->once() )->method( 'createMultiClient' )->willReturn( $multiMock );
 
-		$this->getServiceContainer()->redefineService( 'HttpRequestFactory', fn() => $httpMock );
+		$this->getServiceContainer()->redefineService( 'HttpRequestFactory', static fn () => $httpMock );
 
 		$job = new MultiPurgeJob( [
 			'urls' => [
@@ -140,7 +140,7 @@ class MultiPurgeJobTest extends MediaWikiIntegrationTestCase {
 		$httpMock = $this->getMockBuilder( HttpRequestFactory::class )->disableOriginalConstructor()->getMock();
 		$httpMock->expects( $this->once() )->method( 'createMultiClient' )->willReturn( $multiMock );
 
-		$this->getServiceContainer()->redefineService( 'HttpRequestFactory', fn() => $httpMock );
+		$this->getServiceContainer()->redefineService( 'HttpRequestFactory', static fn () => $httpMock );
 
 		$job = new MultiPurgeJob( [
 			'urls' => [

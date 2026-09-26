@@ -107,7 +107,7 @@ class PurgeHooks implements LocalFilePurgeThumbnailsHook, ArticlePurgeHook, Edit
 			}
 		}
 
-		$urls = [ ...$urls,...$transformerUrls ];
+		$urls = [ ...$urls, ...$transformerUrls ];
 
 		$this->runPurge( $urls );
 	}
@@ -182,7 +182,6 @@ class PurgeHooks implements LocalFilePurgeThumbnailsHook, ArticlePurgeHook, Edit
 		}
 
 		try {
-			$refMethod->setAccessible( true );
 			$thumbnails = $refMethod->invoke( $file );
 		} catch ( ReflectionException $e ) {
 			$thumbnails = [];

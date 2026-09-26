@@ -16,9 +16,6 @@ use OOUIHTMLForm;
 use PermissionsError;
 
 class SpecialPurgeResources extends SpecialPage {
-	/**
-	 *
-	 */
 	public function __construct() {
 		// MW < 1.46 reads the restriction from the constructor instead of getRestriction()
 		if ( version_compare( MW_VERSION, '1.46', '<' ) ) {
